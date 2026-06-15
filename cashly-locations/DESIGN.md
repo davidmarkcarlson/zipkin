@@ -8,6 +8,13 @@ and serve ourselves **without changing the API or any caller**.
 of each layer and the boundaries; it is not a buildable module. Stack assumed: Kotlin
 + coroutines, Ktor (server routing + HTTP client), kotlinx.serialization.
 
+**Contract is pre-existing.** The locations endpoints and `Location` schema already
+live in the repo's `api/openapi.yaml`. That spec is the source of truth; this design
+does **not** introduce a new one. The HTTP adapter implements those endpoints and the
+domain/JSON types mirror that `Location` schema. Field names shown below are
+placeholders until reconciled with the actual schema — see *Reconcile with the
+existing spec* at the end.
+
 ---
 
 ## Architecture
@@ -17,7 +24,7 @@ outbound-adapter, and dependencies point inward only.
 
 ```
 HTTP caller
-    │  api/locations-api.yaml   (the only contract a caller sees)
+    │  api/openapi.yaml   (existing — the contract a caller sees)
     ▼
 adapter.http   LocationRoutes              inbound (HTTP) adapter — translation only
     ▼  calls a use case
@@ -45,15 +52,19 @@ compiler enforces the boundary, not convention.
 
 ---
 
-## The contract
+## The contract (existing `api/openapi.yaml`)
 
-Caller-facing API is defined in [`api/locations-api.yaml`](api/locations-api.yaml):
+The caller-facing API already exists in `api/openapi.yaml`: the locations endpoints
+and the `Location` schema. This design conforms to it rather than defining anything
+new. The HTTP adapter implements those endpoints; the domain `Location` and the JSON
+view model are shaped to match that schema.
 
-- `GET /api/locations?query=&lat=&lng=&radius=&limit=` → `200 [Location]`, `400` on
-  malformed input.
-- `GET /api/locations/{id}` → `200 Location`, `404` when unknown.
-
-`Location` = `{ id, name, address, position: { lat, lng }, categories: [..] }`.
+The endpoints/fields used in the snippets below — `GET /api/locations` (search) and
+`GET /api/locations/{id}` (lookup), and `Location { id, name, address, position{lat,lng},
+categories }` — are placeholders standing in for whatever the spec actually declares.
+Where they differ, the spec wins; only the domain model and the two mapping points
+(`Location.toJson`, `VdbsPlace.toLocation`) change. See *Reconcile with the existing
+spec*.
 
 ---
 
@@ -197,7 +208,28 @@ No change to the use cases, `locationRoutes`, the domain model, or the OpenAPI s
 
 ---
 
-## Assumptions to confirm
+## Reconcile with the existing spec
+
+This design has to be aligned to `api/openapi.yaml` before it's final. Concretely,
+the spec drives these and nothing else moves:
+
+- **Domain `Location` / `LatLng`** mirror the spec's `Location` schema (field names,
+  which are required vs optional, how position is represented — nested object vs flat
+  `lat`/`lng`/`latitude`/`longitude`).
+- **`adapter.http`**: route paths, the search query parameter names, and the success
+  status codes match the spec's operations. `JsonLocation` *is* the spec's response
+  schema (ideally generated from it rather than hand-written).
+- **`VdbsPlace.toLocation`**: the one place that bridges vdbs' field names to the
+  spec-shaped domain model.
+
+The layering itself (adapter → use case → port → vdbs) does not change with the spec.
+
+> Could not read `api/openapi.yaml` from here — it's in the cashly repo, which isn't
+> in this session's scope. Paste the locations operations + `Location` schema (or add
+> that repo to the session) and I'll fix the domain model and the two mapping points
+> to match exactly.
+
+## Assumptions about vdbs (confirm)
 
 - **vdbs contract.** Assumed `GET /v1/places/search?q=&lat=&lon=&radius=&limit=&api_key=`
   returning `{ "results": [ { place_id, display_name, formatted_address, lat, lon,

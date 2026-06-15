@@ -1,12 +1,10 @@
-package com.cashly.locations
+package com.cashly.locations.domain
 
 /**
- * A request to search for locations.
+ * A request to search for locations, expressed purely in domain terms.
  *
- * Expressed purely in domain terms: free text, an optional point to bias results
- * around, an optional radius, and a result limit. Intentionally decoupled from both
- * the HTTP query string that produced it and the backend query that will satisfy it,
- * so neither side leaks into the other.
+ * Decoupled from both the HTTP query string that produced it and the backend query
+ * that will satisfy it, so neither side leaks into the other.
  *
  * @property text free text to match against, e.g. "coffee".
  * @property near optional point to search around.

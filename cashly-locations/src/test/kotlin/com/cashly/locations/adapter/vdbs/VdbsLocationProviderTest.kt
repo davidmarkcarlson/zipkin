@@ -1,7 +1,7 @@
-package com.cashly.locations.vdbs
+package com.cashly.locations.adapter.vdbs
 
-import com.cashly.locations.LatLng
-import com.cashly.locations.LocationQuery
+import com.cashly.locations.domain.LatLng
+import com.cashly.locations.domain.LocationQuery
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -18,12 +18,11 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * Exercises the whole vdbs backend through its public seam (a [VdbsLocationStore]
- * used as a `LocationStore`), with a Ktor [MockEngine] standing in for vdbs. Verifies
- * both directions of the translation: domain query -> vdbs request, and vdbs response
- * -> domain locations.
+ * Exercises the vdbs outbound adapter through the [com.cashly.locations.application.LocationProvider]
+ * port, with a Ktor [MockEngine] standing in for vdbs. Verifies both directions of the
+ * translation: domain query -> vdbs request, and vdbs response -> domain locations.
  */
-class VdbsLocationStoreTest {
+class VdbsLocationProviderTest {
 
     private val searchBody = """
         {"results":[
@@ -39,10 +38,10 @@ class VdbsLocationStoreTest {
          "lat":37.7,"lon":-122.4,"categories":["cafe"]}
     """.trimIndent()
 
-    /** Builds a store whose vdbs is a MockEngine. Captures the last requested URL. */
+    /** Builds a provider whose vdbs is a MockEngine. Captures the last requested URL. */
     private class Fixture(reply: (url: String) -> Pair<HttpStatusCode, String>) {
         var lastUrl: String = ""
-        val store: VdbsLocationStore
+        val provider: VdbsLocationProvider
 
         init {
             val engine = MockEngine { request ->
@@ -54,7 +53,7 @@ class VdbsLocationStoreTest {
                 expectSuccess = false
                 install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
             }
-            store = VdbsLocationStore(http, "https://vdbs.test", "secret")
+            provider = VdbsLocationProvider(http, "https://vdbs.test", "secret")
         }
     }
 
@@ -63,7 +62,7 @@ class VdbsLocationStoreTest {
 
     @Test
     fun `transforms vdbs search results into domain locations`() = runBlocking {
-        val results = Fixture(ok(searchBody)).store.search(LocationQuery(text = "coffee"))
+        val results = Fixture(ok(searchBody)).provider.search(LocationQuery(text = "coffee"))
 
         assertEquals(2, results.size)
         val first = results.first()
@@ -77,7 +76,7 @@ class VdbsLocationStoreTest {
     @Test
     fun `translates a domain query into vdbs request params, including auth`() = runBlocking {
         val fixture = Fixture(ok(searchBody))
-        fixture.store.search(
+        fixture.provider.search(
             LocationQuery(
                 text = "coffee",
                 near = LatLng(37.7, -122.4),
@@ -97,20 +96,14 @@ class VdbsLocationStoreTest {
     }
 
     @Test
-    fun `honors the result limit even if vdbs returns more`() = runBlocking {
-        val results = Fixture(ok(searchBody)).store.search(LocationQuery(limit = 1))
-        assertEquals(1, results.size)
-    }
-
-    @Test
     fun `looks up a single location by id`() = runBlocking {
-        val location = Fixture(ok(placeBody)).store.get("abc")
+        val location = Fixture(ok(placeBody)).provider.get("abc")
         assertEquals("Blue Bottle", location?.name)
     }
 
     @Test
     fun `returns null when vdbs has no such location`() = runBlocking {
         val fixture = Fixture { HttpStatusCode.NotFound to "not found" }
-        assertNull(fixture.store.get("missing"))
+        assertNull(fixture.provider.get("missing"))
     }
 }

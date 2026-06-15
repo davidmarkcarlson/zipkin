@@ -1,11 +1,11 @@
-package com.cashly.locations
+package com.cashly.locations.domain
 
 /**
  * A WGS84 geographic coordinate, in decimal degrees.
  *
- * Part of the location domain model. Deliberately independent of any backend:
- * whether positions come from vdbs today or our own bulk-loaded data tomorrow,
- * callers always see a [LatLng].
+ * Pure domain: no dependency on any framework, transport, or backend. Whether
+ * positions come from vdbs today or our own bulk-loaded data tomorrow, the rest of
+ * the system sees only a [LatLng].
  */
 data class LatLng(
     val lat: Double,
@@ -15,12 +15,12 @@ data class LatLng(
 /**
  * A place callers can search for and look up.
  *
- * The canonical, backend-agnostic representation of a location, and the only
- * location type the API layer is allowed to see. The shape of the underlying data
- * source (vdbs, or a future bulk-loaded store) never reaches the caller.
+ * The canonical, backend-agnostic representation of a location — the currency the
+ * use cases and the API speak. The shape of the underlying data source never reaches
+ * this type.
  *
- * @property id opaque, stable identifier. Whatever backend produced the location is
- *   responsible for round-tripping this id back through [LocationStore.get].
+ * @property id opaque, stable identifier. The provider that produced the location is
+ *   responsible for round-tripping this id back through a lookup.
  * @property name human readable display name, e.g. "Blue Bottle Coffee".
  * @property address formatted, single-line postal address.
  * @property position geographic position of the location.

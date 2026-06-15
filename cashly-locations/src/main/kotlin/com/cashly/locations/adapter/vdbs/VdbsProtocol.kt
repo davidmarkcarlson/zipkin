@@ -1,4 +1,4 @@
-package com.cashly.locations.vdbs
+package com.cashly.locations.adapter.vdbs
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

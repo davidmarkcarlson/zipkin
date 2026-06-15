@@ -1,6 +1,6 @@
-package com.cashly.locations.vdbs
+package com.cashly.locations.adapter.vdbs
 
-import com.cashly.locations.LocationStore
+import com.cashly.locations.application.LocationProvider
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -20,13 +20,13 @@ data class VdbsConfig(
 )
 
 /**
- * Builds a vdbs-backed [LocationStore].
+ * Builds the vdbs outbound adapter.
  *
- * This is *the* swap point. The rest of the system (the API, the JSON, the domain
- * model) depends only on [LocationStore]; which concrete store gets built lives here
- * and nowhere else. To move off vdbs to our own bulk-loaded data, write a
- * `BulkLocationStore : LocationStore` and call it from app wiring instead — no other
- * file changes.
+ * This is *the* swap point. The application core depends only on the
+ * [LocationProvider] port; which concrete adapter gets built lives here and nowhere
+ * else. To move off vdbs to cashly's own bulk-loaded data, write a
+ * `BulkLocationProvider : LocationProvider` with its own module and call it from app
+ * wiring instead — the use cases, the HTTP adapter, and the OpenAPI spec do not change.
  */
 object VdbsLocationModule {
 
@@ -45,7 +45,7 @@ object VdbsLocationModule {
         install(ContentNegotiation) { json(jsonFormat()) }
     }
 
-    /** Wire a vdbs-backed store onto an existing client. */
-    fun locationStore(http: HttpClient, config: VdbsConfig): LocationStore =
-        VdbsLocationStore(http, config.baseUrl, config.apiKey)
+    /** Wire a vdbs-backed [LocationProvider] onto an existing client. */
+    fun locationProvider(http: HttpClient, config: VdbsConfig): LocationProvider =
+        VdbsLocationProvider(http, config.baseUrl, config.apiKey)
 }

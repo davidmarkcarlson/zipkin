@@ -1,7 +1,7 @@
-package com.cashly.locations.vdbs
+package com.cashly.locations.adapter.vdbs
 
-import com.cashly.locations.LatLng
-import com.cashly.locations.Location
+import com.cashly.locations.domain.LatLng
+import com.cashly.locations.domain.Location
 
 /**
  * The one place vdbs' wire shape is mapped onto the location domain model.

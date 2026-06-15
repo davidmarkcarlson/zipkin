@@ -1,4 +1,4 @@
-package com.cashly.locations.vdbs
+package com.cashly.locations.adapter.vdbs
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -17,14 +17,13 @@ import io.ktor.http.isSuccess
  *  - know vdbs' URL layout and how it wants to be authenticated
  *  - turn an HTTP exchange into a decoded wire object (or null for 404)
  *
- * It does no domain mapping and exposes no domain types — it speaks raw fields in and
- * vdbs wire types out. Turning those into [com.cashly.locations.Location]s is
- * [toLocation]'s job, and deciding what to ask for is [VdbsLocationStore]'s. Keeping
- * this class transport-only is what lets us swap the whole vdbs backend out later
- * without touching anyone.
+ * It does no domain mapping and exposes no domain types — raw fields in, vdbs wire
+ * types out. Mapping is [toLocation]'s job; deciding what to ask for is
+ * [VdbsLocationProvider]'s. Keeping this class transport-only is what lets us swap the
+ * whole vdbs backend out later without touching anyone.
  *
  * @param http Ktor client with JSON content negotiation installed. Injected so the
- *   store stays testable and connection/engine config lives in [VdbsLocationModule].
+ *   provider stays testable and engine config lives in [VdbsLocationModule].
  * @param baseUrl vdbs base URL, e.g. "https://vdbs.cashtie.com".
  * @param apiKey vdbs API key, sent on every request.
  */
@@ -69,9 +68,9 @@ internal class VdbsClient(
     }
 
     /**
-     * Fail on any non-2xx status so the store never tries to decode an error page as
-     * a place. (The client is configured with `expectSuccess = false` so we can spot
-     * 404 before this runs.)
+     * Fail on any non-2xx status so the provider never tries to decode an error page
+     * as a place. (The client is configured with `expectSuccess = false` so we can
+     * spot 404 before this runs.)
      */
     private fun HttpResponse.requireSuccess(): HttpResponse {
         if (!status.isSuccess()) throw VdbsException("vdbs returned $status")
@@ -81,7 +80,7 @@ internal class VdbsClient(
 
 /**
  * Raised for vdbs transport/protocol faults. `internal` so it never escapes the
- * module; [VdbsLocationStore] decides how these surface to callers (today: as a
- * thrown exception, opaque to the API).
+ * module; [VdbsLocationProvider] decides how these surface to the core (today: as a
+ * thrown exception, opaque to the use case and the API).
  */
 internal class VdbsException(message: String) : RuntimeException(message)

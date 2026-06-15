@@ -1,8 +1,9 @@
-package com.cashly.locations.api
+package com.cashly.locations.adapter.http
 
-import com.cashly.locations.LatLng
-import com.cashly.locations.LocationQuery
-import com.cashly.locations.LocationStore
+import com.cashly.locations.application.GetLocation
+import com.cashly.locations.application.SearchLocations
+import com.cashly.locations.domain.LatLng
+import com.cashly.locations.domain.LocationQuery
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
 import io.ktor.server.application.call
@@ -12,20 +13,23 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 
 /**
- * Caller-facing HTTP API for locations, implementing api/locations-api.yaml.
+ * Inbound HTTP adapter for locations, implementing api/locations-api.yaml.
  *
- * The top of the stack. It depends only on the [LocationStore] seam and the JSON view
- * model — never on `vdbs`. It translates an HTTP request into a domain
- * [LocationQuery], asks the store, and renders the domain result as JSON. Point it at
- * a different [LocationStore] (e.g. a future bulk-loaded one) and this code does not
- * change.
+ * Its only job is to translate the HTTP edge to and from the application core: parse
+ * the request into a domain [LocationQuery] / id, invoke the appropriate use case,
+ * and render the domain result as JSON. It holds no application logic and knows
+ * nothing about vdbs — it depends on the [SearchLocations] / [GetLocation] use cases
+ * and the JSON view model, nothing else.
  *
  * Install on a Ktor application that has ContentNegotiation(json) configured:
  * ```
- * routing { locationRoutes(store) }
+ * routing { locationRoutes(searchLocations, getLocation) }
  * ```
  */
-fun Route.locationRoutes(store: LocationStore) {
+fun Route.locationRoutes(
+    searchLocations: SearchLocations,
+    getLocation: GetLocation,
+) {
     route("/api/locations") {
         // GET /api/locations?query=&lat=&lng=&radius=&limit=
         get {
@@ -35,13 +39,13 @@ fun Route.locationRoutes(store: LocationStore) {
                 call.respond(HttpStatusCode.BadRequest, e.message ?: "Invalid request")
                 return@get
             }
-            call.respond(store.search(query).map { it.toJson() })
+            call.respond(searchLocations(query).map { it.toJson() })
         }
 
         // GET /api/locations/{id}
         get("/{id}") {
             val id = call.parameters["id"]!!
-            when (val location = store.get(id)) {
+            when (val location = getLocation(id)) {
                 null -> call.respond(HttpStatusCode.NotFound, "No location with id $id")
                 else -> call.respond(location.toJson())
             }
@@ -53,7 +57,7 @@ fun Route.locationRoutes(store: LocationStore) {
 private class InvalidQueryException(message: String) : RuntimeException(message)
 
 /**
- * Translate the HTTP query string into a domain [LocationQuery], keeping the store
+ * Translate the HTTP query string into a domain [LocationQuery], keeping the use case
  * insulated from raw, possibly-malformed input.
  */
 private fun Parameters.toLocationQuery(): LocationQuery =

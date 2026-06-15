@@ -1,12 +1,12 @@
 openapi: 3.0.0
 info:
-  title: Zipkin Locations API
+  title: cashly Locations API
   version: 0.1.0
   description: >
-    Caller-facing contract for looking up and searching locations. This is the only
+    Caller-facing contract for searching and looking up locations. This is the only
     surface clients depend on. The backend serving these results (cashtie's vdbs
-    today, our own bulk-loaded data tomorrow) is an implementation detail and never
-    appears in this spec — see doc/locations-backend.md.
+    today, cashly's own bulk-loaded data tomorrow) is an implementation detail and
+    never appears in this spec — see README.md.
 
 paths:
   /api/locations:

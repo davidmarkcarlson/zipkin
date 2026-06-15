@@ -5,7 +5,9 @@ import com.twitter.conversions.time._
 import com.twitter.ostrich.admin.RuntimeEnvironment
 import com.twitter.util.Duration
 import com.twitter.zipkin.gen
+import com.twitter.zipkin.locations.LocationStore
 import com.twitter.zipkin.web.{Resource, ZipkinWeb, App}
+import com.twitter.zipkin.web.locations.LocationsApp
 import com.twitter.zipkin.config.zookeeper.{ZooKeeperClientConfig, ZooKeeperConfig}
 import java.net.InetSocketAddress
 
@@ -38,6 +40,17 @@ trait ZipkinWebConfig extends ZipkinConfig[ZipkinWeb] {
 
   def appConfig: (gen.ZipkinQuery.FinagledClient) => App =
     (client) => new App(this, client)
+
+  /**
+   * Optional locations backend. Off by default so existing deployments are
+   * unaffected; set this (e.g. to a [[VdbsLocationStoreConfig]]) to expose the
+   * `/api/locations` endpoints. This is the one place a backend is chosen.
+   */
+  var locationStoreConfig: Option[LocationStoreConfig] = None
+  lazy val locationStore: Option[LocationStore] = locationStoreConfig.map { _() }
+
+  def locationsAppConfig: (LocationStore) => LocationsApp =
+    (store) => new LocationsApp(store)
 
   def resourceConfig: () => Resource = () => new Resource(resourceDirs)
   lazy val resource = resourceConfig()

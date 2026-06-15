@@ -46,6 +46,11 @@ class ZipkinWeb(config: ZipkinWebConfig) extends Service {
     FinatraServer.register(resource)
     FinatraServer.register(app)
 
+    /* Locations API, only when a backend has been configured */
+    config.locationStore.foreach { store =>
+      FinatraServer.register(config.locationsAppConfig(store))
+    }
+
     val finatraService = new AppService
     val service = finatraService
 

@@ -1,0 +1,114 @@
+openapi: 3.0.0
+info:
+  title: Zipkin Locations API
+  version: 0.1.0
+  description: >
+    Caller-facing contract for looking up and searching locations. This is the only
+    surface clients depend on. The backend serving these results (cashtie's vdbs
+    today, our own bulk-loaded data tomorrow) is an implementation detail and never
+    appears in this spec — see doc/locations-backend.md.
+
+paths:
+  /api/locations:
+    get:
+      summary: Search for locations
+      operationId: searchLocations
+      parameters:
+        - name: query
+          in: query
+          required: false
+          description: Free text to match against, e.g. "coffee".
+          schema:
+            type: string
+        - name: lat
+          in: query
+          required: false
+          description: Latitude of a point to search near. Must be sent with `lng`.
+          schema:
+            type: number
+            format: double
+        - name: lng
+          in: query
+          required: false
+          description: Longitude of a point to search near. Must be sent with `lat`.
+          schema:
+            type: number
+            format: double
+        - name: radius
+          in: query
+          required: false
+          description: Radius in meters around (lat,lng). Ignored without a point.
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results. Defaults to 25, capped at 100.
+          schema:
+            type: integer
+            default: 25
+            maximum: 100
+      responses:
+        '200':
+          description: Matching locations, best matches first. May be empty.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Location'
+        '400':
+          description: Malformed request (e.g. non-numeric lat, or lat without lng).
+
+  /api/locations/{id}:
+    get:
+      summary: Look up a single location by id
+      operationId: getLocation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Opaque location id, as returned by search.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The location.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+        '404':
+          description: No location has that id.
+
+components:
+  schemas:
+    LatLng:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+    Location:
+      type: object
+      required: [id, name, address, position, categories]
+      properties:
+        id:
+          type: string
+          description: Opaque, stable identifier. Pass back to /api/locations/{id}.
+        name:
+          type: string
+          description: Human readable display name.
+        address:
+          type: string
+          description: Formatted, single-line postal address.
+        position:
+          $ref: '#/components/schemas/LatLng'
+        categories:
+          type: array
+          items:
+            type: string

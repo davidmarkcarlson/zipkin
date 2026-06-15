@@ -149,10 +149,14 @@ object Zipkin extends Build {
         "com.twitter" % "finagle-ostrich4"  % FINAGLE_VERSION,
         "com.twitter" % "finagle-thrift"    % FINAGLE_VERSION,
         "com.twitter" % "finagle-zipkin"    % FINAGLE_VERSION,
+        "com.twitter" % "finagle-http"      % FINAGLE_VERSION,
         "com.twitter" % "ostrich"           % OSTRICH_VERSION,
         "com.twitter" % "util-core"         % UTIL_VERSION,
 
         "com.twitter.common.zookeeper" % "client"    % "0.0.6",
+
+        /* Decoding vdbs (cashtie) location responses */
+        "org.codehaus.jackson" % "jackson-mapper-asl" % "1.9.11",
 
         /* Test dependencies */
         "org.scala-tools.testing" % "specs_2.9.1"  % "1.6.9" % "test",
